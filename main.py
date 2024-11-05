@@ -40,6 +40,24 @@ def make_request(method, url, **kwargs):
     return None
 
 @client.command()
+async def status(ctx, is_active: str, *, game: str):
+    active = is_active.lower() == "true"
+    
+    if active:
+        await client.change_presence(activity=discord.Game(name=game))
+        await ctx.send(f"Status updated to: `{game}` and is now Enabled.")
+    else:
+        await client.change_presence(activity=None)
+        await ctx.send(f"Status for `{game}` is now Disabled.")
+
+    config["status"] = {
+        "game": game,
+        "active": active
+    }
+    with open('config.json', 'w') as config_file:
+        json.dump(config, config_file, indent=4)
+
+@client.command()
 async def u(ctx, username: str):
     try:
         response = make_request('post', "https://users.roblox.com/v1/usernames/users", json={"usernames": [username]}, timeout=1)
@@ -165,6 +183,8 @@ async def h(ctx):
         "**3. ,l <user>** example `,l user`\n"
         "**4. ,cl <user>** example `,cl user`\n"
         "**5. ,settings** example `,settings true false false`\n"
+        "**6. ,status** example `,status true Grand Theft Auto V`\n"
+        "**7. ,update** example `,update`\n"
     )
     await ctx.send(help_message)
 
@@ -196,6 +216,34 @@ async def cl(ctx, *, query: str):
 
     except Exception:
         await ctx.send("failed to connect to the API try again later")
+
+@client.command()
+async def update(ctx):
+    github_url = "https://raw.githubusercontent.com/gotlafter/pg-selftbot/main/main.py"
+    
+    try:
+        response = requests.get(github_url)
+        
+        if response.status_code == 200:
+            latest_code = response.text.replace("\r\n", "\n")
+            
+            with open("main.py", "r") as local_file:
+                current_code = local_file.read()
+            
+            if current_code == latest_code:
+                await ctx.send("You're up-to-date")
+            else:
+                os.remove("main.py")
+                
+                with open("main.py", "w", newline="\n") as local_file:
+                    local_file.write(latest_code)
+                
+                await ctx.send("main.py has been updated to the latest version. Please restart main.py.")
+        else:
+            await ctx.send("Cant check for updates right now. Try again later")
+    
+    except Exception as e:
+        await ctx.send(f"error occurred while updating: {e}")
 
 @client.event
 async def on_message(message):
