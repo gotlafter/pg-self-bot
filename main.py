@@ -157,22 +157,25 @@ async def s(ctx, year: str, amount: int):
 @client.command()
 async def l(ctx, *, query: str):
     if len(query) < 4:
-        await ctx.send("query must be 4 characters or more")
-        return
+        return await ctx.send("Query must be 4 characters or more.")
     
     try:
-        data = requests.get(config["api_url"], params={'query': query, 'start': 0, 'limit': 100}, timeout=5).json()
+        response = requests.get(config["api_url"], params={'query': query, 'start': 0, 'limit': 100}, timeout=5)
+        data = response.json()
         if not data.get("count"):
-            await ctx.send("no data found")
-            return
-
+            return await ctx.send("no data found")
+        
         os.makedirs("output", exist_ok=True)
-        with open("output/info.txt", "w") as file:
+        with open("output/info.txt", "w", encoding="utf-8") as file:
             file.write("\n".join(data["lines"]))
-        await ctx.send(file=File("output/info.txt"))
+        
+        await ctx.send(file=discord.File("output/info.txt"))
 
-    except Exception:
-        await ctx.send("failed to connect to the API try again later")
+    except requests.RequestException:
+        await ctx.send("Couldnt connect to the API. Try again later")
+    except Exception as e:
+        await ctx.send("Something went wrong")
+        print(f"Error: {e}")
 
 @client.command()
 async def h(ctx):
