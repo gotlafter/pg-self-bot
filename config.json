@@ -1,0 +1,14 @@
+{
+    "token": "ACCOUNT_TOKEN_HERE",
+    "api_url": "https://api.proxynova.com/comb",
+    "command_prefix": ",",
+    "settings": {
+        "username": true,
+        "user_id": true,
+        "link": true
+    },
+    "status": {
+        "game": "Grand Theft Auto V",
+        "active": false
+    }
+}
