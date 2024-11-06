@@ -184,6 +184,7 @@ async def h(ctx):
         "**6. ,status** example `,status true Grand Theft Auto V`\n"
         "**7. ,cat** example `,cat`\n"
         "**8. ,update** example `,update`\n"
+        "-# This is fully written/owned by Mythical (rtzx) if you bought this you have been scammed."
     )
     await ctx.send(help_message)
 
