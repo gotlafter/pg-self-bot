@@ -5,6 +5,7 @@ import json
 import os
 import random
 import time
+import asyncio
 from datetime import datetime
 from discord import File
 
@@ -90,56 +91,53 @@ async def u(ctx, username: str):
         print(f"error: {e}")
 
 @client.command()
-async def settings(ctx, username: str = None, user_id: str = None, link: str = None):
-    if all(arg is None for arg in (username, user_id, link)):
-        current_settings = config.get("settings", {"username": False, "user_id": False, "link": False})
-        settings_display = "\n".join(
-            f"**{key.capitalize()}:** `{'Enabled' if current_settings.get(key, False) else 'Disabled'}`"
-            for key in ["username", "user_id", "link"]
-        )
-        await ctx.send(f"**Current Settings:**\n{settings_display}")
+async def settings(ctx, username: str = None, user_id: str = None, link: str = None, last_online: str = None):
+    keys = ["username", "user_id", "link", "last_online"]
+    current_settings = config.get("settings", {key: False for key in keys})
+    
+    if all(arg is None for arg in (username, user_id, link, last_online)):
+        await ctx.send("**Current Settings:**\n" + "\n".join(f"**{k.capitalize()}:** `{'Enabled' if current_settings[k] else 'Disabled'}`" for k in keys))
         return
 
-    settings = {key: val.lower() == 'true' for key, val in zip(["username", "user_id", "link"], (username, user_id, link))}
-    
+    settings = {k: (v and v.lower() == 'true') for k, v in zip(keys, (username, user_id, link, last_online))}
     if not any(settings.values()):
-        await ctx.send("**Error:** At least one setting must be enabled.")
-        return
+        return await ctx.send("**Error:** Atleast one setting must be enabled")
 
     config["settings"] = settings
-    with open("config.json", "w") as config_file:
-        json.dump(config, config_file, indent=4)
-
-    settings_display = "\n".join(
-        f"**{key.capitalize()}:** `{'Enabled' if settings[key] else 'Disabled'}`"
-        for key in ["username", "user_id", "link"]
-    )
-    await ctx.send(f"**Settings Updated:**\n{settings_display}")
+    with open("config.json", "w") as file:
+        json.dump(config, file, indent=4)
+    
+    await ctx.send("**Settings Updated:**\n" + "\n".join(f"**{k.capitalize()}:** `{'Enabled' if settings[k] else 'Disabled'}`" for k in keys))
 
 @client.command()
 async def s(ctx, year: str, amount: int):
     if year not in ID_RANGES or amount < 1:
-        await ctx.send("invalid input. Year must be between 2006 and 2023, and amount must be greater than 0.")
-        return
-
+        return await ctx.send("Invalid year must be between 2006 and 2023.")
+    
     range_start, range_end = ID_RANGES[year]
-    profiles = []
-    attempts = 0
-    max_attempts = amount * 10
+    profiles, attempts, max_attempts = [], 0, amount * 10
+    current_settings = config.get("settings", {"username": False, "user_id": False, "link": False, "last_online": False})
 
     while len(profiles) < amount and attempts < max_attempts:
-        user_id = random.randint(range_start, range_end)
         try:
+            user_id = random.randint(range_start, range_end)
             user_data = requests.get(f"https://users.roblox.com/v1/users/{user_id}", timeout=5).json()
-            if not user_data.get("isBanned", False):
-                profile_info = [
-                    user_data.get("name", "unknown user") if config["settings"].get("username") else None,
-                    str(user_id) if config["settings"].get("user_id") else None,
-                    f"https://www.roblox.com/users/{user_id}" if config["settings"].get("link") else None
-                ]
-                profiles.append(":".join(filter(None, profile_info)))
+            if user_data.get("isBanned", False):
+                continue
+            response = requests.post("https://presence.roblox.com/v1/presence/last-online", json={"userIds": [user_id]}, timeout=1)
+            last_online = (response.json().get("lastOnlineTimestamps", [{}])[0].get("lastOnline", "Unknown")[:10] if response.ok else "Unknown")
+            profile = ": ".join(
+                filter(None, [
+                    user_data.get("name", "unknown user") if current_settings.get("username") else None,
+                    str(user_id) if current_settings.get("user_id") else None,
+                    f"https://www.roblox.com/users/{user_id}" if current_settings.get("link") else None,
+                    f"Last online: {last_online}" if current_settings.get("last_online") else None,
+                ])
+            )
+            profiles.append(profile)
         except requests.RequestException:
             pass
+        await asyncio.sleep(0.5)
         attempts += 1
 
     if profiles:
@@ -157,25 +155,22 @@ async def s(ctx, year: str, amount: int):
 @client.command()
 async def l(ctx, *, query: str):
     if len(query) < 4:
-        return await ctx.send("Query must be 4 characters or more.")
+        await ctx.send("query must be 4 characters or more")
+        return
     
     try:
-        response = requests.get(config["api_url"], params={'query': query, 'start': 0, 'limit': 100}, timeout=5)
-        data = response.json()
+        data = requests.get(config["api_url"], params={'query': query, 'start': 0, 'limit': 100}, timeout=5).json()
         if not data.get("count"):
-            return await ctx.send("no data found")
-        
-        os.makedirs("output", exist_ok=True)
-        with open("output/info.txt", "w", encoding="utf-8") as file:
-            file.write("\n".join(data["lines"]))
-        
-        await ctx.send(file=discord.File("output/info.txt"))
+            await ctx.send("no data found")
+            return
 
-    except requests.RequestException:
-        await ctx.send("Couldnt connect to the API. Try again later")
-    except Exception as e:
-        await ctx.send("Something went wrong")
-        print(f"Error: {e}")
+        os.makedirs("output", exist_ok=True)
+        with open("output/info.txt", "w") as file:
+            file.write("\n".join(data["lines"]))
+        await ctx.send(file=File("output/info.txt"))
+
+    except Exception:
+        await ctx.send("failed to connect to the API try again later")
 
 @client.command()
 async def h(ctx):
@@ -187,8 +182,8 @@ async def h(ctx):
         "**4. ,cl <user>** example `,cl user`\n"
         "**5. ,settings** example `,settings true false false`\n"
         "**6. ,status** example `,status true Grand Theft Auto V`\n"
-        "**7. ,update** example `,update`\n"
-        "-# This is fully owned by Mythical (rtzx) if you bought this you have been scammed."
+        "**7. ,cat** example `,cat`\n"
+        "**8. ,update** example `,update`\n"
     )
     await ctx.send(help_message)
 
@@ -248,6 +243,24 @@ async def update(ctx):
     
     except Exception as e:
         await ctx.send(f"error occurred while updating: {e}")
+
+@client.command()
+async def cat(ctx):
+    url = "https://api.thecatapi.com/v1/images/search"
+    
+    try:
+        response = make_request('get', url)
+        
+        if response and response.status_code == 200:
+            data = response.json()
+            cat_image_url = data[0]["url"]
+            
+            await ctx.send(cat_image_url)
+        else:
+            await ctx.send("Couldnt get a cat image right now try again later")
+    except Exception as e:
+        await ctx.send("An error occurred while getting the cat image")
+        print(f"error: {e}")
 
 @client.event
 async def on_message(message):
