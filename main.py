@@ -180,7 +180,7 @@ async def h(ctx):
         "**2. ,s <year> <amount>** example `,s 2020 5`\n"
         "**3. ,l <user>** example `,l user`\n"
         "**4. ,cl <user>** example `,cl user`\n"
-        "**5. ,settings** example `,settings true false false`\n"
+        "**5. ,settings** example `,settings true false false true`\n"
         "**6. ,status** example `,status true Grand Theft Auto V`\n"
         "**7. ,update** example `,update`\n"
         "-# This is fully written/owned by Mythical (rtzx) if you bought this you have been scammed."
