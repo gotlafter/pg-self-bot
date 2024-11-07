@@ -182,8 +182,7 @@ async def h(ctx):
         "**4. ,cl <user>** example `,cl user`\n"
         "**5. ,settings** example `,settings true false false`\n"
         "**6. ,status** example `,status true Grand Theft Auto V`\n"
-        "**7. ,cat** example `,cat`\n"
-        "**8. ,update** example `,update`\n"
+        "**7. ,update** example `,update`\n"
         "-# This is fully written/owned by Mythical (rtzx) if you bought this you have been scammed."
     )
     await ctx.send(help_message)
@@ -244,24 +243,6 @@ async def update(ctx):
     
     except Exception as e:
         await ctx.send(f"error occurred while updating: {e}")
-
-@client.command()
-async def cat(ctx):
-    url = "https://api.thecatapi.com/v1/images/search"
-    
-    try:
-        response = make_request('get', url)
-        
-        if response and response.status_code == 200:
-            data = response.json()
-            cat_image_url = data[0]["url"]
-            
-            await ctx.send(cat_image_url)
-        else:
-            await ctx.send("Couldnt get a cat image right now try again later")
-    except Exception as e:
-        await ctx.send("An error occurred while getting the cat image")
-        print(f"error: {e}")
 
 @client.event
 async def on_message(message):
