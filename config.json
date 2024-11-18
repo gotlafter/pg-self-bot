@@ -5,8 +5,7 @@
     "settings": {
         "username": true,
         "user_id": true,
-        "link": true,
-        "last_online": true
+        "link": true
     },
     "status": {
         "game": "Grand Theft Auto V",
