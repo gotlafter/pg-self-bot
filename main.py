@@ -11,7 +11,7 @@ ID_RANGES = {
     "2012": (22797641, 36347234), "2013": (36347235, 53530394), "2014": (53530396, 75524130),
     "2015": (75524131, 103531549), "2016": (103531550, 205441141), "2017": (205441142, 478149931),
     "2018": (478149932, 915267179), "2019": (915267180, 1390950929), "2020": (1390950930, 2259602536),
-    "2021": (2259602537, 3193661921), "2022": (466569947, 516935812), "2023": (4196180601, 5402417841)
+    "2021": (2259602537, 3193661921)
 }
 
 with open('config.json') as config_file:
@@ -82,7 +82,7 @@ async def settings(ctx, username: str = None, user_id: str = None, link: str = N
 @client.command()
 async def s(ctx, year: str, amount: int):
     if year not in ID_RANGES or amount < 1:
-        return await ctx.send("Invalid year must be between 2006 and 2023")
+        return await ctx.send("Invalid year must be between 2006 and 2021")
     
     range_start, range_end = ID_RANGES[year]
     profiles, attempts, max_attempts = [], 0, amount * 10
