@@ -197,19 +197,19 @@ async def check_for_updates():
                 current_code = local_file.read()
             
             if current_code == latest_code:
-                print(f"{Fore.GREEN}[Update Check] main.py is up-to-date")
+                print(f"{Fore.GREEN}[Up-To-Date] main.py is up-to-date")
                 await asyncio.sleep(1)
             else:
-                print(f"{Fore.BLUE}[Update Check] Update available updating main.py...")
+                print(f"{Fore.BLUE}[Update Found] Update available updating main.py...")
                 await asyncio.sleep(1)
                 os.remove("main.py")
                 
                 with open("main.py", "w", newline="\n") as local_file:
                     local_file.write(latest_code)
                 
-                print(f"{Fore.GREEN}[Update Check] main.py has been updated to the latest version")
+                print(f"{Fore.GREEN}[Updated] main.py has been updated to the latest version")
                 await asyncio.sleep(0.5)
-                print(f"{Fore.RED}[Update Check] Restarting to apply the update...")
+                print(f"{Fore.RED}[Restart] Restarting to apply the update...")
                 await asyncio.sleep(0.1)
 
                 python = sys.executable
@@ -220,11 +220,11 @@ async def check_for_updates():
                 process.join()
 
         else:
-            print(f"{Fore.RED}[Update Check] Unable to check for updates: {response.status_code}")
+            print(f"{Fore.RED}[Update Error] Unable to check for updates: {response.status_code}")
             await asyncio.sleep(1)
     
     except Exception as e:
-        print(f"{Fore.RED}[Update Check] Error occurred while checking for updates: {e}")
+        print(f"{Fore.RED}[Update Error] Error occurred while checking for updates: {e}")
         await asyncio.sleep(1)
 
 def restart_script(python, args):
