@@ -1,4 +1,4 @@
-import discord, requests, json, os, random, time, asyncio, sys
+import discord, requests, json, os, random, time, asyncio, sys, multiprocessing
 from colorama import init, Fore, Style
 from discord.ext import commands
 from discord import File
@@ -187,6 +187,7 @@ async def check_for_updates():
     github_url = "https://raw.githubusercontent.com/gotlafter/pg-selftbot/refs/heads/main/main.py"
     try:
         print(f"{Fore.CYAN}[Update Check] Checking for updates...")
+        await asyncio.sleep(0.1)
         response = requests.get(github_url)
         
         if response.status_code == 200:
@@ -197,21 +198,37 @@ async def check_for_updates():
             
             if current_code == latest_code:
                 print(f"{Fore.GREEN}[Update Check] main.py is up-to-date")
+                await asyncio.sleep(1)
             else:
                 print(f"{Fore.BLUE}[Update Check] Update available updating main.py...")
+                await asyncio.sleep(1)
                 os.remove("main.py")
                 
                 with open("main.py", "w", newline="\n") as local_file:
                     local_file.write(latest_code)
                 
                 print(f"{Fore.GREEN}[Update Check] main.py has been updated to the latest version")
-                print(f"{Fore.RED}[Update Check] Shutting down to apply the update. Restart main.py")
-                os._exit(0)
+                await asyncio.sleep(0.5)
+                print(f"{Fore.RED}[Update Check] Restarting to apply the update...")
+                await asyncio.sleep(0.1)
+
+                python = sys.executable
+                args = sys.argv
+                print(f"{Fore.YELLOW}[Restart] Restarting script...")
+                process = multiprocessing.Process(target=restart_script, args=(python, args))
+                process.start()
+                process.join()
+
         else:
             print(f"{Fore.RED}[Update Check] Unable to check for updates: {response.status_code}")
+            await asyncio.sleep(1)
     
     except Exception as e:
         print(f"{Fore.RED}[Update Check] Error occurred while checking for updates: {e}")
+        await asyncio.sleep(1)
+
+def restart_script(python, args):
+    os.execl(python, python, *args)
 
 @client.event
 async def on_message(message):
