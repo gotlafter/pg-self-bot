@@ -184,7 +184,7 @@ async def cl(ctx, *, query: str):
         await ctx.send("failed to connect to the API try again later")
 
 async def check_for_updates():
-    github_url = "https://raw.githubusercontent.com/gotlafter/pg-selftbot/main/main.py"
+    github_url = "https://raw.githubusercontent.com/gotlafter/pg-selftbot/refs/heads/main/main.py"
     try:
         print(f"{Fore.CYAN}[Update Check] Checking for updates...")
         response = requests.get(github_url)
