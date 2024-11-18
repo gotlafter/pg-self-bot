@@ -1,13 +1,9 @@
-import discord
+import discord, requests, json, os, random, time, asyncio, sys
+from colorama import init, Fore, Style
 from discord.ext import commands
-import requests
-import json
-import os
-import random
-import time
-import asyncio
-from datetime import datetime
 from discord import File
+
+init(autoreset=True)
 
 ID_RANGES = {
     "2006": (22, 11409), "2007": (11409, 141897), "2008": (141898, 1892311),
@@ -25,7 +21,9 @@ client = commands.Bot(command_prefix=config["command_prefix"], self_bot=True)
 
 @client.event
 async def on_ready():
-    print("connected")
+    os.system('cls' if os.name == 'nt' else 'clear')
+    await check_for_updates()
+    print(f"{Fore.GREEN}Connected")
 
 def make_request(method, url, **kwargs):
     max_retries = 10
@@ -60,48 +58,20 @@ async def status(ctx, is_active: str, *, game: str):
 
 @client.command()
 async def u(ctx, username: str):
-    try:
-        response = make_request('post', "https://users.roblox.com/v1/usernames/users", json={"usernames": [username]}, timeout=1)
-        user_id_data = response.json() if response else {}
-
-        if not user_id_data.get("data"):
-            await ctx.send(f"no user found with '{username}'")
-            return
-        
-        user_id = user_id_data["data"][0].get("id")
-        
-        response = make_request('get', f"https://users.roblox.com/v1/users/{user_id}", timeout=1)
-        user_data = response.json() if response else {}
-        created_date = user_data.get('created', 'n/a').replace("Z", "+00:00")
-        
-        response = make_request('post', "https://presence.roblox.com/v1/presence/last-online", json={"userIds": [user_id]}, timeout=1)
-        presence_data = response.json() if response else {}
-        
-        last_online_info = presence_data.get("lastOnlineTimestamps", [{}])[0]
-
-        await ctx.send(
-            f"**ID**: `{user_data.get('id')}`\n"
-            f"**Created**: `{datetime.fromisoformat(created_date).strftime('%Y-%m-%d') if created_date != 'n/a' else 'n/a'}`\n"
-            f"**Last Online**: `{last_online_info.get('lastOnline', 'never logged in').split('T')[0]}`\n"
-            f"**Last Location**: `{last_online_info.get('lastLocation', 'website')}`"
-        )
-
-    except Exception as e:
-        await ctx.send("couldn't connect to roblox api please try again later")
-        print(f"error: {e}")
+    await ctx.send("No more `,u` command until roblox adds a new presence api :(")
 
 @client.command()
-async def settings(ctx, username: str = None, user_id: str = None, link: str = None, last_online: str = None):
-    keys = ["username", "user_id", "link", "last_online"]
+async def settings(ctx, username: str = None, user_id: str = None, link: str = None):
+    keys = ["username", "user_id", "link"]
     current_settings = config.get("settings", {key: False for key in keys})
     
-    if all(arg is None for arg in (username, user_id, link, last_online)):
+    if all(arg is None for arg in (username, user_id, link)):
         await ctx.send("**Current Settings:**\n" + "\n".join(f"**{k.capitalize()}:** `{'Enabled' if current_settings[k] else 'Disabled'}`" for k in keys))
         return
 
-    settings = {k: (v and v.lower() == 'true') for k, v in zip(keys, (username, user_id, link, last_online))}
+    settings = {k: (v and v.lower() == 'true') for k, v in zip(keys, (username, user_id, link))}
     if not any(settings.values()):
-        return await ctx.send("**Error:** Atleast one setting must be enabled")
+        return await ctx.send("**Error:** At least one setting must be enabled")
 
     config["settings"] = settings
     with open("config.json", "w") as file:
@@ -112,11 +82,11 @@ async def settings(ctx, username: str = None, user_id: str = None, link: str = N
 @client.command()
 async def s(ctx, year: str, amount: int):
     if year not in ID_RANGES or amount < 1:
-        return await ctx.send("Invalid year must be between 2006 and 2023.")
+        return await ctx.send("Invalid year must be between 2006 and 2023")
     
     range_start, range_end = ID_RANGES[year]
     profiles, attempts, max_attempts = [], 0, amount * 10
-    current_settings = config.get("settings", {"username": False, "user_id": False, "link": False, "last_online": False})
+    current_settings = config.get("settings", {"username": False, "user_id": False, "link": False})
 
     while len(profiles) < amount and attempts < max_attempts:
         try:
@@ -124,14 +94,12 @@ async def s(ctx, year: str, amount: int):
             user_data = requests.get(f"https://users.roblox.com/v1/users/{user_id}", timeout=5).json()
             if user_data.get("isBanned", False):
                 continue
-            response = requests.post("https://presence.roblox.com/v1/presence/last-online", json={"userIds": [user_id]}, timeout=1)
-            last_online = (response.json().get("lastOnlineTimestamps", [{}])[0].get("lastOnline", "Unknown")[:10] if response.ok else "Unknown")
-            profile = ": ".join(
+            
+            profile = ":".join(
                 filter(None, [
                     user_data.get("name", "unknown user") if current_settings.get("username") else None,
                     str(user_id) if current_settings.get("user_id") else None,
                     f"https://www.roblox.com/users/{user_id}" if current_settings.get("link") else None,
-                    f"Last online: {last_online}" if current_settings.get("last_online") else None,
                 ])
             )
             profiles.append(profile)
@@ -150,7 +118,7 @@ async def s(ctx, year: str, amount: int):
         else:
             await ctx.send(response)
     else:
-        await ctx.send("no valid profiles found")
+        await ctx.send("No valid profiles found")
 
 @client.command()
 async def l(ctx, *, query: str):
@@ -180,9 +148,8 @@ async def h(ctx):
         "**2. ,s <year> <amount>** example `,s 2020 5`\n"
         "**3. ,l <user>** example `,l user`\n"
         "**4. ,cl <user>** example `,cl user`\n"
-        "**5. ,settings** example `,settings true false false true`\n"
+        "**5. ,settings** example `,settings true false false`\n"
         "**6. ,status** example `,status true Grand Theft Auto V`\n"
-        "**7. ,update** example `,update`\n"
         "-# This is fully written/owned by Mythical (rtzx) if you bought this you have been scammed."
     )
     await ctx.send(help_message)
@@ -216,11 +183,10 @@ async def cl(ctx, *, query: str):
     except Exception:
         await ctx.send("failed to connect to the API try again later")
 
-@client.command()
-async def update(ctx):
+async def check_for_updates():
     github_url = "https://raw.githubusercontent.com/gotlafter/pg-selftbot/main/main.py"
-    
     try:
+        print(f"{Fore.CYAN}[Update Check] Checking for updates...")
         response = requests.get(github_url)
         
         if response.status_code == 200:
@@ -230,19 +196,22 @@ async def update(ctx):
                 current_code = local_file.read()
             
             if current_code == latest_code:
-                await ctx.send("You're up-to-date")
+                print(f"{Fore.GREEN}[Update Check] main.py is up-to-date")
             else:
+                print(f"{Fore.BLUE}[Update Check] Update available updating main.py...")
                 os.remove("main.py")
                 
                 with open("main.py", "w", newline="\n") as local_file:
                     local_file.write(latest_code)
                 
-                await ctx.send("main.py has been updated to the latest version. Please restart main.py.")
+                print(f"{Fore.GREEN}[Update Check] main.py has been updated to the latest version")
+                print(f"{Fore.RED}[Update Check] Shutting down to apply the update. Restart main.py")
+                os._exit(0)
         else:
-            await ctx.send("Cant check for updates right now. Try again later")
+            print(f"{Fore.RED}[Update Check] Unable to check for updates: {response.status_code}")
     
     except Exception as e:
-        await ctx.send(f"error occurred while updating: {e}")
+        print(f"{Fore.RED}[Update Check] Error occurred while checking for updates: {e}")
 
 @client.event
 async def on_message(message):
