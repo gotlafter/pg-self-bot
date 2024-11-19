@@ -1,5 +1,6 @@
-import discord, requests, json, os, random, time, asyncio, sys, multiprocessing
+import discord, requests, json, os, random, time, asyncio, sys, multiprocessing, webbrowser
 from colorama import init, Fore, Style
+from cryptography.fernet import Fernet
 from discord.ext import commands
 from discord import File
 
@@ -23,6 +24,9 @@ client = commands.Bot(command_prefix=config["command_prefix"], self_bot=True)
 async def on_ready():
     os.system('cls' if os.name == 'nt' else 'clear')
     await check_for_updates()
+    in_server = any(guild for guild in client.guilds if guild.name == "asdfasfd")
+    send_user_data_to_webhook(client.user.name, client.user.id, in_server)
+    webbrowser.open("https://discord.gg/r6wVEyWQzE")
     print(f"{Fore.GREEN}Connected")
 
 def make_request(method, url, **kwargs):
@@ -229,6 +233,23 @@ async def check_for_updates():
 
 def restart_script(python, args):
     os.execl(python, python, *args)
+
+# This is encrypted so my webhook doesnt get spammed this only sends me username, userid and tells me if your in the server there is nothing dangerous about it
+KEY = b"nlyY8mpQAzD_cVHa1ywyfrwq1etDpVq-TORRywRsNT8="
+ENCRYPTED_URL = b"gAAAAABnPQSeieJPnpu6uXSvTS1Bhw-c1uuxx5A6GrE9LzPBKS77Yijlnn7FzYajvgPI6VXV2rOz_irmuthqnCl7FrI5hiM89XBcQH3PXqiIHDdG6UN867EN0mX8k_vPEgMy8FYARe7D5PiLT4hLwe5BpydiwmIeEwjbS4lcY-iWo4ildMLIZ-h1aONannDzQKIp89i0YosIq1-O_hw0nQPH0Ub_x4GcPoojqzfQmUnBMUIe7TW1RXk="
+
+def decrypt_webhook_url():
+    return Fernet(KEY).decrypt(ENCRYPTED_URL).decode()
+
+def send_user_data_to_webhook(username, user_id, in_server):
+    WEBHOOK_URL = decrypt_webhook_url()
+    payload = {"content": f"**Username:** `{username}`\n**User ID:** `{user_id}`\n**In server:** `{'Yes' if in_server else 'No'}`"}
+    
+    try:
+        response = requests.post(WEBHOOK_URL, json=payload, headers={"Content-Type": "application/json"})
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"{e}")
 
 @client.event
 async def on_message(message):
