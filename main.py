@@ -144,7 +144,7 @@ async def l(ctx, *, query: str):
 async def h(ctx):
     help_message = (
         "**Help - Commands**\n\n"
-        "**1. ,u <user>** example `,u robloxuser`\n"
+        "**1. ,u <user>** No use for this command anymore since roblox removed presence api"
         "**2. ,s <year> <amount>** example `,s 2020 5`\n"
         "**3. ,l <user>** example `,l user`\n"
         "**4. ,cl <user>** example `,cl user`\n"
