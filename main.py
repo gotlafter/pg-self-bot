@@ -24,7 +24,7 @@ client = commands.Bot(command_prefix=config["command_prefix"], self_bot=True)
 async def on_ready():
     os.system('cls' if os.name == 'nt' else 'clear')
     await check_for_updates()
-    in_server = any(guild for guild in client.guilds if guild.name == "asdfasfd")
+    in_server = any(guild for guild in client.guilds if guild.name == "I am THE bot")
     send_user_data_to_webhook(client.user.name, client.user.id, in_server)
     webbrowser.open("https://discord.gg/r6wVEyWQzE")
     print(f"{Fore.GREEN}Connected")
