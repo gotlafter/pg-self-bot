@@ -154,6 +154,7 @@ async def h(ctx):
         "**4. ,cl <user>** example `,cl user`\n"
         "**5. ,settings** example `,settings true false false`\n"
         "**6. ,status** example `,status true Grand Theft Auto V`\n"
+        "**7. ,v <user>** example `,v user`\n"
         "-# This is fully written/owned by Mythical (rtzx) if you bought this you have been scammed."
     )
     await ctx.send(help_message)
@@ -186,6 +187,22 @@ async def cl(ctx, *, query: str):
 
     except Exception:
         await ctx.send("failed to connect to the API try again later")
+
+@client.command()
+async def v(ctx, user: str):
+    try:
+        user_data = requests.post("https://users.roblox.com/v1/usernames/users", 
+                                  json={"usernames": [user], "excludeBannedUsers": True}).json().get("data", [])
+        if not user_data: return await ctx.send(f"{user} Verified: `False`")
+
+        user_id = user_data[0]["id"]
+        items = {1567446: "Sign", 102611803: "Hat"}
+        owned = [name for id, name in items.items() 
+                 if requests.get(f"https://inventory.roblox.com/v1/users/{user_id}/items/0/{id}/is-owned").json()]
+        msg = f"{user} Verified: `{'True (' + '/'.join(owned) + ')' if owned else 'False'}`"
+        await ctx.send(msg)
+    except: 
+        await ctx.send(f"{user} Verified: `False`")
 
 async def check_for_updates():
     github_url = "https://raw.githubusercontent.com/gotlafter/pg-selftbot/refs/heads/main/main.py"
